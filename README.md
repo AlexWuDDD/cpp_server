@@ -216,3 +216,92 @@ bool TcpSession::RecvEtMode()
 1. 在LT模式下，读时间触发后可以按需收取想要的字节数，不用吧本次接收的数据收取干净；在LT模式下，读事件时必须把数据收取干净，因为我们不一定再有机会收取数据了，即使有机会，也可能因为没有及时处理上次没读完的数据，造成客户端响应延迟。
 2. 在LT模式下，不需要写事件时一定要及时移除，避免不必要地触发且浪费CPU资源；在ET模式下，写事件触发后，如果还需要下一次地写事件触发来驱动任务（例如发送上次剩余地数据），则我们需要继续注册一次检测可写事件。
 3. LT模式和ET模式各有优缺点，无所谓孰优孰劣。LT模式时，我们可以自由决定收取多少字节或认识接收连接，但是可能会导致多次触发；使用ET模式时，我们必须每次都将数据收完或立即调用accept接收连接，其优点是触发次数少。
+
+## 高效的readv和writev
+```cpp
+#include <sys/uio.h>
+
+ssize_t readv(int fd, const struct iovec *iov, int iovcnt);
+ssize_t writev(int fd, const struct iovec *iov, int iovcnt);
+ssize_t preadv(int fd, const struct iovec *iov, int iovcnt, off_t offset);
+ssize_t pwritev(int fd, const struct iovec *iov, int iovcnt, off_t offset);
+```
+
+## 主机字节序和网络字节序
+网络通信在本质上是不同的机器进行数据交换
+网络字节序：big-endian
+
+##域名解析API
+gethostbyname和gethostbyaddr已经被废弃了，使用getaddrinfo代替
+
+## 网络通信故障排查常用命令
+```shell
+ifconfig
+ifconfig -s #精简显示
+ifconfig -a #显示所有激活和未激活的网卡
+ifconfig 网卡名 up
+ifconfig 网卡名 down
+ifconfig 网卡名 add IP地址
+ifconfig 网卡名 del IP地址
+ping IP地址
+telnet IP地址 端口号 #检测指定了IP地址和端口号的监听服务是否存在
+```
+### netstat:
+-a: 表示显示所有选型，不使用该选项时，默认不显示LISTEN相关选项
+-t: 表示显示TCP连接
+-u: 表示显示UDP连接
+-n: 不显示别名，将能显示数字的全部转换为数字
+-l: 仅列出监听（listen）状态的服务
+-p: 显示建立相关链接的程序名
+-r: 显示路由信息、路由表
+-e: 显示扩展信息，例如uid
+-s：按各个协议进行统计（*）
+-c: 每隔一个固定的时间执行该netstat命令
+
+### losf: list opened filedescriptor 列出已经打开的文件描述符
+需要注意一下三点：
+- 在默认情况下，lsof命令的输出较多，我们可以使用grep命令过滤想要查看的进行打开的fd
+```shell
+lsof -i | grep myapp
+losf -p pid #可以查看某个进程打开的文件描述符
+```
+- 使用lsof只能查看当前用户有权限查看的进程fd信息
+- lsof命令第一栏进程名在显示时默认显示前n个字符
+```shell
+#最左侧程序名最多显示15个字符
+lsof +c 15
+```
+
+如果仅需显示系统的网络连接信息，则使用-i选项即可
+```
+lsof -Pni #对IP地址和端口号都不用别名显示
+```
+
+## nc 模拟一个服务器或客户端
+### 模拟一个服务器程序
+```shell
+nc -v -l 127.0.0.1 6000
+```
+-l 在某个IP地址和端口上开启一个监听服务
+
+### 模拟一个客户端程序
+```shell
+nc -v www.baidu.com 80
+nc -v -p 5000 www.baidu.com 80 #指定使用哪个端口号连接服务器
+```
+```shell
+nc -l IP地址 端口号 > 接收的文件名
+nc IP地址 端口号 < 发送的文件名
+```
+
+## tcpdump
+tcpdump -i 网卡名 
+tcpdump -X 以ASCII和十六进制形式输出捕获的数据包内容，减去链路层的包头信息
+tcpdump -XX 以ASCII和十六进制形式输出捕获的数据包内容，包含链路层的包头信息
+tcpdump -n 不要将IP地址显示成别名
+tcpdump -nn 不要将IP地址和端口显示成别名
+tcpdump -S 以绝对值显示包的ISN号（包序列号），默认以上一包的偏移量显示
+tcpdump -vv 显示详细的抓包信息
+tcpdump -vvv 显示更详细的抓包信息
+tcpdump -w 文件名 保存抓包的数据包到文件中
+tcpdump -r 文件名 从使用-w保存的文件中读取数据包
