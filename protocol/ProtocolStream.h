@@ -37,11 +37,11 @@ namespace net
     //将一个1~10字节的字符数组还原成一个8字节的整型数值
   void read7BitEncoded(const char* buf, uint32_t len, uint64_t& value);
 
-  class BinaryStramReader final
+  class BinaryStreamReader final
   {
   public:
-    BinaryStramReader(const char* ptr, size_t len);
-    ~BinaryStramReader() = default;
+    BinaryStreamReader(const char* ptr, size_t len);
+    ~BinaryStreamReader() = default;
 
     virtual const char* GetData() const;
     virtual size_t GetSize() const;
@@ -49,6 +49,7 @@ namespace net
     bool IsEmpty() const;
     bool ReadString(std::string* str, size_t maxlen, size_t& outlen);
     bool ReadCString(char* str, size_t strlen, size_t& len);
+    bool ReadCCString(const char** str, size_t maxlen, size_t& outlen);
     bool ReadInt32(int32_t& i);
     bool ReadInt64(int64_t& i);
     bool ReadShort(short& i);
@@ -62,8 +63,8 @@ namespace net
     bool ReadLengthWithoutOffset(size_t& headlen, size_t& outlen);
   
   private:
-    BinaryStramReader(const BinaryStramReader&) = delete;
-    BinaryStramReader& operator=(const BinaryStramReader&) = delete;
+    BinaryStreamReader(const BinaryStreamReader&) = delete;
+    BinaryStreamReader& operator=(const BinaryStreamReader&) = delete;
   
   private:
     const char* const m_ptr;
@@ -71,11 +72,11 @@ namespace net
     const char* m_cur;
   };
 
-  class BinaryStramWriter final
+  class BinaryStreamWriter final
   {
   public:
-    BinaryStramWriter(std::string* data);
-    ~BinaryStramWriter() = default;
+    BinaryStreamWriter(std::string* data);
+    ~BinaryStreamWriter() = default;
 
     virtual const char* GetData() const;
     virtual size_t GetSize() const;
@@ -91,8 +92,8 @@ namespace net
     void Clear();
 
   private:
-    BinaryStramWriter(const BinaryStramWriter&) = delete;
-    BinaryStramWriter& operator=(const BinaryStramWriter&) = delete;
+    BinaryStreamWriter(const BinaryStreamWriter&) = delete;
+    BinaryStreamWriter& operator=(const BinaryStreamWriter&) = delete;
 
   private:
     std::string* m_data;
