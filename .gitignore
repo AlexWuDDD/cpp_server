@@ -4,3 +4,5 @@
 /socket/epoll/server
 /socket/epoll/client
 /protocol/test
+/log/test
+/log/my.log
